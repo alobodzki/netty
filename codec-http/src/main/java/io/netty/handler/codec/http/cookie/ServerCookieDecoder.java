@@ -45,15 +45,15 @@ public final class ServerCookieDecoder extends CookieDecoder {
      * Strict encoder that validates that name and value chars are in the valid scope
      * defined in RFC6265
      */
-    public static final ServerCookieDecoder STRICT = new ServerCookieDecoder(true);
+    public static final ServerCookieDecoder STRICT = new ServerCookieDecoder(true, false);
 
     /**
      * Lax instance that doesn't validate name and value
      */
-    public static final ServerCookieDecoder LAX = new ServerCookieDecoder(false);
+    public static final ServerCookieDecoder LAX = new ServerCookieDecoder(false, false);
 
-    private ServerCookieDecoder(boolean strict) {
-        super(strict);
+    private ServerCookieDecoder(boolean strict, boolean reportError) {
+        super(strict, reportError);
     }
 
     /**
@@ -151,5 +151,25 @@ public final class ServerCookieDecoder extends CookieDecoder {
         }
 
         return cookies;
+    }
+
+    public static class ServerCookieDecoderBuilder {
+        private boolean strict;
+        private boolean reportError;
+
+
+        public ServerCookieDecoderBuilder strict(boolean strict) {
+            this.strict = strict;
+            return this;
+        }
+
+        public ServerCookieDecoderBuilder reportError(boolean reportError) {
+            this.reportError = reportError;
+            return this;
+        }
+
+        public ServerCookieDecoder build() {
+            return new ServerCookieDecoder(strict, reportError);
+        }
     }
 }
