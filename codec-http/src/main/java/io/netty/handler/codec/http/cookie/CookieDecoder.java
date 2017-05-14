@@ -32,27 +32,49 @@ public abstract class CookieDecoder {
     private final InternalLogger logger = InternalLoggerFactory.getInstance(getClass());
 
     private final boolean strict;
+    private final boolean reportException;
+
+    protected CookieDecoder(boolean strict, boolean reportException) {
+       this.strict = strict;
+       this.reportException = reportException;
+    }
 
     protected CookieDecoder(boolean strict) {
-        this.strict = strict;
+        this(strict, false);
     }
 
     protected DefaultCookie initCookie(String header, int nameBegin, int nameEnd, int valueBegin, int valueEnd) {
         if (nameBegin == -1 || nameBegin == nameEnd) {
-            logger.debug("Skipping cookie with null name");
+            if (logger.isDebugEnabled()) {
+                logger.debug("Skipping cookie with null name");
+            }
+            if (reportException) {
+                throw new IllegalArgumentException("Skipping cookie with null name");
+            }
             return null;
         }
 
         if (valueBegin == -1) {
-            logger.debug("Skipping cookie with null value");
+            if (logger.isDebugEnabled()) {
+                logger.debug("Skipping cookie with null value");
+            }
+            if (reportException) {
+                throw new IllegalArgumentException("Skipping cookie with null value");
+            }
             return null;
         }
 
         CharSequence wrappedValue = CharBuffer.wrap(header, valueBegin, valueEnd);
         CharSequence unwrappedValue = unwrapValue(wrappedValue);
         if (unwrappedValue == null) {
-            logger.debug("Skipping cookie because starting quotes are not properly balanced in '{}'",
-                    wrappedValue);
+            if (logger.isDebugEnabled()) {
+                logger.debug("Skipping cookie because starting quotes are not properly balanced in '{}'", wrappedValue);
+            }
+            if (reportException) {
+                throw new IllegalArgumentException(
+                        String.format("Skipping cookie because starting quotes are not properly balanced in '%s'",
+                                wrappedValue));
+            }
             return null;
         }
 
@@ -62,7 +84,12 @@ public abstract class CookieDecoder {
         if (strict && (invalidOctetPos = firstInvalidCookieNameOctet(name)) >= 0) {
             if (logger.isDebugEnabled()) {
                 logger.debug("Skipping cookie because name '{}' contains invalid char '{}'",
-                        name, name.charAt(invalidOctetPos));
+                        name, invalidOctetPos);
+            }
+            if (reportException) {
+                throw new IllegalArgumentException(
+                        String.format("Skipping cookie because name '%s' contains invalid char '%c'",
+                                name, invalidOctetPos));
             }
             return null;
         }
@@ -72,7 +99,12 @@ public abstract class CookieDecoder {
         if (strict && (invalidOctetPos = firstInvalidCookieValueOctet(unwrappedValue)) >= 0) {
             if (logger.isDebugEnabled()) {
                 logger.debug("Skipping cookie because value '{}' contains invalid char '{}'",
-                        unwrappedValue, unwrappedValue.charAt(invalidOctetPos));
+                    unwrappedValue, invalidOctetPos);
+            }
+            if (reportException) {
+                throw new IllegalArgumentException(
+                        String.format("Skipping cookie because value '%s' contains invalid char '%c'",
+                                unwrappedValue, invalidOctetPos));
             }
             return null;
         }
